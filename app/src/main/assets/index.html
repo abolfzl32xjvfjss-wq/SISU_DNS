@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SISU_DNS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Tahoma,sans-serif}
+body{background:#070a0f;color:#e6edf3;min-height:100vh;padding:20px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
+h1{font-size:22px;color:#00ffa3;margin-bottom:8px;letter-spacing:2px}
+.sub{font-size:12px;color:#6b7a8f;margin-bottom:30px}
+.power{width:170px;height:170px;border-radius:50%;border:3px solid #1b2735;
+  background:radial-gradient(circle at 50% 30%,#182432,#0a0f16);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  cursor:pointer;transition:.4s;color:#6b7a8f;font-size:14px;margin-bottom:20px}
+.power.on{border-color:#00ffa3;color:#00ffa3;
+  box-shadow:0 0 50px rgba(0,255,163,.5)}
+.power:active{transform:scale(.95)}
+.status{font-size:14px;color:#6b7a8f;margin-bottom:20px}
+.status.on{color:#00ffa3}
+.servers{width:100%;max-width:400px;display:flex;flex-direction:column;gap:6px;
+  max-height:200px;overflow-y:auto;margin-bottom:20px}
+.srv{padding:10px;border-radius:10px;background:#0d151f;border:1px solid #1b2735;
+  cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13px;color:#e6edf3;
+  text-align:right;font-family:inherit}
+.srv.sel{border-color:#00ffa3;background:rgba(0,255,163,.08)}
+.srv .flag{font-size:18px}
+.dns{width:100%;max-width:400px;background:#0d151f;border:1px solid #1b2735;
+  border-radius:10px;padding:10px;font-size:10px;font-family:monospace;
+  direction:ltr;text-align:left;max-height:100px;overflow-y:auto;color:#6b7a8f}
+.dns.active{color:#e6edf3;border-color:rgba(0,255,163,.4)}
+</style>
+</head>
+<body>
+  <h1>SISU_DNS</h1>
+  <div class="sub">DNS Changer</div>
+
+  <div class="power" id="power" onclick="toggleVpn()">
+    <div style="font-size:40px">⏻</div>
+    <div id="powerLabel">اتصال</div>
+  </div>
+
+  <div class="status" id="status">غیرفعال</div>
+
+  <div class="servers" id="servers"></div>
+  <div class="dns" id="dnsBox"></div>
+
+<script>
+const COMMON = ['1.1.1.1','1.0.0.1','8.8.8.8','8.8.4.4','9.9.9.9',
+  '149.112.112.112','208.67.222.222','208.67.220.220','94.140.14.14',
+  '94.140.15.15','76.76.2.0','76.76.10.0','8.26.56.26','8.20.247.20',
+  '185.228.168.9','185.228.169.9'];
+
+const SERVERS = [
+  {flag:'TR', name:'ترکیه - استانبول', dns:[...COMMON,'77.75.24.129','94.103.16.11','85.104.151.208']},
+  {flag:'DE', name:'آلمان - فرانکفورت', dns:[...COMMON,'80.150.7.143','62.157.89.238','87.190.53.251']},
+  {flag:'IR', name:'ایران - تهران', dns:[...COMMON,'78.157.88.245','185.143.54.105','213.176.223.197']},
+  {flag:'AE', name:'امارات - دبی', dns:[...COMMON,'94.204.206.168','94.200.191.31','86.98.57.238']},
+  {flag:'US', name:'آمریکا - نیویورک', dns:[...COMMON,'68.105.44.108','96.31.253.14','198.51.189.94']},
+  {flag:'NL', name:'هلند - آمستردام', dns:[...COMMON,'89.211.55.188','94.200.110.21','85.96.79.181']},
+  {flag:'QA', name:'قطر - دوحه', dns:[...COMMON,'89.211.55.188','94.200.110.21','85.96.79.181']},
+  {flag:'CN', name:'چین - پکن', dns:[...COMMON,'223.5.113.32','114.114.192.145','119.29.234.72']}
+];
+
+let current = 0;
+let connected = false;
+
+function renderServers(){
+  const el = document.getElementById('servers');
+  el.innerHTML = '';
+  SERVERS.forEach((s,i)=>{
+    const d = document.createElement('div');
+    d.className = 'srv' + (i===current?' sel':'');
+    d.innerHTML = '<span class="flag">' + s.flag + '</span><span>' + s.name + '</span>';
+    d.onclick = function(){ current=i; renderServers(); renderDns(); };
+    el.appendChild(d);
+  });
+}
+
+function renderDns(){
+  const el = document.getElementById('dnsBox');
+  el.textContent = SERVERS[current].dns.join(', ');
+  el.className = 'dns' + (connected?' active':'');
+}
+
+function toggleVpn(){
+  if (connected) {
+    if (window.SisuNative) window.SisuNative.stopVpn();
+    else setConnected(false);
+  } else {
+    if (window.SisuNative) {
+      window.SisuNative.startVpn(SERVERS[current].dns.join(','));
+    } else {
+      setConnected(true);
+    }
+  }
+}
+
+window.onNativeVpnResult = function(success){
+  setConnected(success);
+};
+
+function setConnected(v){
+  connected = v;
+  document.getElementById('power').className = 'power' + (v?' on':'');
+  document.getElementById('powerLabel').textContent = v?'قطع':'اتصال';
+  var st = document.getElementById('status');
+  st.textContent = v?'متصل':'غیرفعال';
+  st.className = 'status' + (v?' on':'');
+  renderDns();
+}
+
+renderServers();
+renderDns();
+</script>
+</body>
+  </html>
